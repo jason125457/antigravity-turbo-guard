@@ -1,0 +1,15 @@
+{
+  "auto-approve": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python C:/Users/jason/.gemini/config/plugins/custom-commands/auto_approve.py"
+          }
+        ]
+      }
+    ]
+  }
+}
