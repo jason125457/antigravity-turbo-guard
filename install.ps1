@@ -2,7 +2,7 @@
 # Run in PowerShell: irm https://raw.githubusercontent.com/jason125457/antigravity-turbo-guard/main/install.ps1 | iex
 # Or run locally: powershell -ExecutionPolicy Bypass -File .\install.ps1
 
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = (New-Object System.Text.UTF8Encoding($false))
 $ErrorActionPreference = 'Stop'
 
 Write-Host "==================================================" -ForegroundColor Cyan
@@ -83,8 +83,8 @@ $hooksContent = @"
 $globalHooksPath = Join-Path $geminiConfigDir "hooks.json"
 $pluginHooksPath = Join-Path $pluginDir "hooks.json"
 
-[System.IO.File]::WriteAllText($globalHooksPath, $hooksContent, [System.Text.Encoding]::UTF8)
-[System.IO.File]::WriteAllText($pluginHooksPath, $hooksContent, [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText($globalHooksPath, $hooksContent, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText($pluginHooksPath, $hooksContent, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "  ✅ 全域生命週期 Hook 註冊完成！" -ForegroundColor Green
 
 # 5. 更新 config.json (啟用插件與 Turbo 模式)
@@ -110,8 +110,27 @@ $config["userSettings"]["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTIO
 $config["userSettings"]["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
 
 $jsonOut = $config | ConvertTo-Json -Depth 20
-[System.IO.File]::WriteAllText($configPath, $jsonOut, [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText($configPath, $jsonOut, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "  ✅ 全域 Turbo 模式已自動啟用！" -ForegroundColor Green
+
+# 同步所有現有專案設定為 Turbo 模式
+$projectsDir = Join-Path $geminiConfigDir "projects"
+if (Test-Path $projectsDir) {
+    Get-ChildItem -Path $projectsDir -Filter "*.json" | ForEach-Object {
+        try {
+            $pData = Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+            if (-not $pData.ContainsKey("settings")) { $pData["settings"] = @{} }
+            $pData["settings"]["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
+            $pData["settings"]["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+            $pData["settings"]["fileAccessPolicy"] = "AGENT_SETTING_POLICY_ALLOW"
+            $pData["settings"]["sandboxMode"] = $false
+            $pJson = $pData | ConvertTo-Json -Depth 20
+            $noBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($_.FullName, $pJson, $noBom)
+        } catch {}
+    }
+}
+
 
 # 6. 自檢自測
 Write-Host "`n[6/6] 執行自動安全測試..." -ForegroundColor Yellow
