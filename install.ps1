@@ -109,6 +109,38 @@ if (-not $config.ContainsKey("userSettings")) { $config["userSettings"] = @{} }
 $config["userSettings"]["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
 $config["userSettings"]["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
 
+# 5.1 自動授權所有本機 MCP 工具與通配符 (免除 MCP 工具彈窗)
+$permGrants = $config["userSettings"]["globalPermissionGrants"]
+if (-not $permGrants) { 
+    $config["userSettings"]["globalPermissionGrants"] = @{ "allow" = @() } 
+    $permGrants = $config["userSettings"]["globalPermissionGrants"]
+}
+$allowList = [System.Collections.Generic.List[string]]::new()
+if ($permGrants["allow"]) {
+    foreach ($item in $permGrants["allow"]) { $allowList.Add($item) }
+}
+
+$mcpWildcards = @("mcp(*)", "mcp(*/*)")
+foreach ($w in $mcpWildcards) {
+    if (-not $allowList.Contains($w)) { $allowList.Add($w) }
+}
+
+$mcpRootDir = Join-Path $userHome ".gemini\antigravity\mcp"
+if (Test-Path $mcpRootDir) {
+    Get-ChildItem -Path $mcpRootDir -Directory | ForEach-Object {
+        $srvName = $_.Name
+        $srvWildcard = "mcp($srvName/*)"
+        if (-not $allowList.Contains($srvWildcard)) { $allowList.Add($srvWildcard) }
+        Get-ChildItem -Path $_.FullName -Filter "*.json" | ForEach-Object {
+            $toolName = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
+            $toolGrant = "mcp($srvName/$toolName)"
+            if (-not $allowList.Contains($toolGrant)) { $allowList.Add($toolGrant) }
+        }
+    }
+}
+$permGrants["allow"] = $allowList.ToArray()
+
+
 $jsonOut = $config | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText($configPath, $jsonOut, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "  ✅ 全域 Turbo 模式已自動啟用！" -ForegroundColor Green

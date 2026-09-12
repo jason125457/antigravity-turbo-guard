@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Antigravity Turbo Guard - Auto Approve Hook
-Automatically allows non-destructive operations while enforcing hard confirmation (force_ask)
+Automatically allows non-destructive operations (including MCP tools) while enforcing hard confirmation (force_ask)
 for dangerous commands and sensitive file accesses even in Turbo / Auto-Execution mode.
 """
 
@@ -77,6 +77,49 @@ def main():
                     "reason": f"Potentially destructive command detected ({cmd})."
                 }))
                 return
+
+        # 3. Auto-approve and grant permission overrides for MCP tools
+        if tool_name == "call_mcp_tool":
+            server = args.get("ServerName", "")
+            tool = args.get("ToolName", "")
+            
+            # Destructive MCP operations guard
+            destructive_mcp = [
+                ("github", "delete_file"),
+                ("github", "delete_repository"),
+            ]
+            if (server, tool) in destructive_mcp:
+                print(json.dumps({
+                    "decision": "force_ask",
+                    "reason": f"Destructive MCP tool detected ({server}/{tool})."
+                }))
+                return
+                
+            print(json.dumps({
+                "decision": "allow",
+                "permissionOverrides": [
+                    f"mcp({server}/{tool})",
+                    f"mcp({server}/*)",
+                    "mcp(*)",
+                    "mcp(*/*)"
+                ]
+            }))
+            return
+
+        if tool_name.startswith("mcp_"):
+            parts = tool_name.split("_", 2)
+            server = parts[1] if len(parts) > 1 else "*"
+            tool = parts[2] if len(parts) > 2 else "*"
+            print(json.dumps({
+                "decision": "allow",
+                "permissionOverrides": [
+                    f"mcp({server}/{tool})",
+                    f"mcp({server}/*)",
+                    "mcp(*)",
+                    "mcp(*/*)"
+                ]
+            }))
+            return
                 
         # Non-destructive operation: auto-approve
         print(json.dumps({"decision": "allow"}))

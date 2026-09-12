@@ -76,7 +76,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 $PYTHON_BIN - <<EOF
-import json, os
+import json, os, glob
+
 config_path = os.path.expanduser("~/.gemini/config/config.json")
 try:
     with open(config_path, "r", encoding="utf-8") as f:
@@ -90,13 +91,47 @@ if "custom-commands" not in data["plugins"]:
     data["plugins"]["custom-commands"] = {}
 data["plugins"]["custom-commands"]["enabled"] = True
 
-if "userSettings" not in data:
-    data["userSettings"] = {}
-data["userSettings"]["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
-data["userSettings"]["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
+u_settings = data.setdefault("userSettings", {})
+u_settings["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+u_settings["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
+
+perm_grants = u_settings.setdefault("globalPermissionGrants", {})
+allow_list = set(perm_grants.get("allow", []))
+
+mcp_wildcards = ["mcp(*)", "mcp(*/*)"]
+allow_list.update(mcp_wildcards)
+
+mcp_dir = os.path.expanduser("~/.gemini/antigravity/mcp")
+if os.path.exists(mcp_dir):
+    for server in os.listdir(mcp_dir):
+        s_path = os.path.join(mcp_dir, server)
+        if os.path.isdir(s_path):
+            allow_list.add(f"mcp({server}/*)")
+            for f in os.listdir(s_path):
+                if f.endswith(".json"):
+                    allow_list.add(f"mcp({server}/{f[:-5]})")
+
+perm_grants["allow"] = sorted(list(allow_list))
 
 with open(config_path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
+
+# Sync projects
+proj_dir = os.path.expanduser("~/.gemini/config/projects")
+if os.path.exists(proj_dir):
+    for p_file in glob.glob(os.path.join(proj_dir, "*.json")):
+        try:
+            with open(p_file, "r", encoding="utf-8") as f:
+                pdata = json.load(f)
+            psettings = pdata.setdefault("settings", {})
+            psettings["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
+            psettings["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+            psettings["fileAccessPolicy"] = "AGENT_SETTING_POLICY_ALLOW"
+            psettings["sandboxMode"] = False
+            with open(p_file, "w", encoding="utf-8") as f:
+                json.dump(pdata, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
 EOF
 
 echo -e "\n=================================================="

@@ -28,6 +28,7 @@
 ## ✨ 核心特色
 
 - ⚡ **Turbo 模式極速無阻**：一般開發指令（`git status`、`npm install`、一般代碼讀寫）秒速放行，零打擾。
+- 🔌 **MCP 工具極速授權與零彈窗**：深度適配 Model Context Protocol (MCP) 外掛（如 Serena、Context7、GitHub、Playwright 等），自動預先授權各類查詢與代碼工具，免除頻繁點擊「Always Allow」的困擾。
 - 🛑 **絕對把關的安全煞車 (`force_ask`)**：命中高危黑名單時，強制喚出介面確認彈窗，保障本機安全。
 - 🪟 **原生支援 Windows & PowerShell**：
   - 深度適配 PowerShell `Remove-Item` 與別名指令。
@@ -53,6 +54,10 @@ AI 嘗試於終端機執行下列命令時，**強制彈窗確認**：
 - 磁碟抹除：`format [a-z]:`、`format-volume`、`mkfs`（排除一般專案 format script）
 - 資料庫高危命令：`drop database`、`drop table`
 - 系統控制：`shutdown`、`reboot`
+
+### 3. 高危 MCP 操作防禦
+AI 嘗試透過 MCP 執行破壞性遠端操作時，**強制彈窗確認**：
+- GitHub 刪除操作：`delete_repository`、`delete_file`
 
 ---
 
