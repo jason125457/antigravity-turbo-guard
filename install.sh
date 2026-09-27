@@ -94,6 +94,8 @@ data["plugins"]["custom-commands"]["enabled"] = True
 u_settings = data.setdefault("userSettings", {})
 u_settings["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
 u_settings["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
+u_settings["fileAccessPolicy"] = "AGENT_SETTING_POLICY_ALLOW"
+u_settings["sandboxMode"] = False
 
 perm_grants = u_settings.setdefault("globalPermissionGrants", {})
 allow_list = set(perm_grants.get("allow", []))
@@ -116,8 +118,25 @@ perm_grants["allow"] = sorted(list(allow_list))
 with open(config_path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
 
-# Sync projects
+# Sync projects and Outside of Project
 proj_dir = os.path.expanduser("~/.gemini/config/projects")
+os.makedirs(proj_dir, exist_ok=True)
+
+oop_path = os.path.join(proj_dir, "outside-of-project.json")
+oop_data = {
+    "id": "outside-of-project",
+    "name": "Outside of Project",
+    "isWorkspaceOnly": False,
+    "settings": {
+        "fileAccessPolicy": "AGENT_SETTING_POLICY_ALLOW",
+        "sandboxMode": False,
+        "autoExecutionPolicy": "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER",
+        "artifactReviewMode": "ARTIFACT_REVIEW_MODE_TURBO"
+    }
+}
+with open(oop_path, "w", encoding="utf-8") as f:
+    json.dump(oop_data, f, indent=2, ensure_ascii=False)
+
 if os.path.exists(proj_dir):
     for p_file in glob.glob(os.path.join(proj_dir, "*.json")):
         try:

@@ -1,4 +1,4 @@
-﻿# Antigravity Turbo Guard - Windows One-Click Installer
+# Antigravity Turbo Guard - Windows One-Click Installer
 # Run in PowerShell: irm https://raw.githubusercontent.com/jason125457/antigravity-turbo-guard/main/install.ps1 | iex
 # Or run locally: powershell -ExecutionPolicy Bypass -File .\install.ps1
 
@@ -108,6 +108,8 @@ $config["plugins"]["custom-commands"]["enabled"] = $true
 if (-not $config.ContainsKey("userSettings")) { $config["userSettings"] = @{} }
 $config["userSettings"]["autoExecutionPolicy"] = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
 $config["userSettings"]["artifactReviewMode"] = "ARTIFACT_REVIEW_MODE_TURBO"
+$config["userSettings"]["fileAccessPolicy"] = "AGENT_SETTING_POLICY_ALLOW"
+$config["userSettings"]["sandboxMode"] = $false
 
 # 5.1 自動授權所有本機 MCP 工具與通配符 (免除 MCP 工具彈窗)
 $permGrants = $config["userSettings"]["globalPermissionGrants"]
@@ -145,8 +147,25 @@ $jsonOut = $config | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText($configPath, $jsonOut, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "  ✅ 全域 Turbo 模式已自動啟用！" -ForegroundColor Green
 
-# 同步所有現有專案設定為 Turbo 模式
+# 同步所有現有專案設定與 Outside of Project 為 Turbo 模式
 $projectsDir = Join-Path $geminiConfigDir "projects"
+if (-not (Test-Path $projectsDir)) { New-Item -ItemType Directory -Path $projectsDir -Force | Out-Null }
+
+$oopPath = Join-Path $projectsDir "outside-of-project.json"
+$oopData = @{
+    "id" = "outside-of-project"
+    "name" = "Outside of Project"
+    "isWorkspaceOnly" = $false
+    "settings" = @{
+        "fileAccessPolicy" = "AGENT_SETTING_POLICY_ALLOW"
+        "sandboxMode" = $false
+        "autoExecutionPolicy" = "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+        "artifactReviewMode" = "ARTIFACT_REVIEW_MODE_TURBO"
+    }
+}
+$oopJson = $oopData | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText($oopPath, $oopJson, (New-Object System.Text.UTF8Encoding($false)))
+
 if (Test-Path $projectsDir) {
     Get-ChildItem -Path $projectsDir -Filter "*.json" | ForEach-Object {
         try {

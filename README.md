@@ -34,7 +34,7 @@
   - 深度適配 PowerShell `Remove-Item` 與別名指令。
   - 磁碟格式化指令辨識（智慧排除 `npm run format` 等排版指令，絕不誤擋）。
   - Windows UTF-8 輸入輸出流編碼修復。
-- 🌐 **全域 + 專案雙層生效**：即使在「無工作區的一般對話」中也能完美運作。
+- 🌐 **全域 + 專案 + Outside of Project 完整適配**：即使在「未開啟專案資料夾的一般對話」（`Outside of Project`）中也能完美運作，自動配置全域 `fileAccessPolicy: AGENT_SETTING_POLICY_ALLOW` 與 `outside-of-project.json`，徹底消除非工作區檔案存取與規劃步驟時的反覆「Proceed (下一步)」確認彈窗。
 - 📋 **完整稽核日誌**：每次工具調用細節均寫入 `~/.gemini/antigravity/scratch/hook_log.txt`，可隨時追蹤審查。
 
 ---
